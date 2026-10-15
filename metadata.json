@@ -1,0 +1,8 @@
+{
+  "name": "Cutlas - Minimalist Line Action",
+  "description": "A minimalist 2D line-art action shooter and roguelite featuring authentic hand-drawn stick cowboy aesthetics, weapon and horse upgrades, and procedural Web Audio synth soundscapes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
