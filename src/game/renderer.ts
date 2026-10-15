@@ -7,7 +7,14 @@ import {
   Tumbleweed,
   CloudBird,
   VisualTheme,
+  Platform,
 } from '../types/game';
+import { SubPrimitive, CharacterIdentity } from '../rigging/types25d';
+import { Humanoid25DRig, drawThreeFingerHand } from '../rigging/humanoidRig';
+import { Horse25DRig } from '../rigging/horseRig';
+import { CompositeMountedRig } from '../rigging/compositeMountedRig';
+import { Dog25DRig } from '../rigging/dogRig';
+import { PainterSorter } from '../rigging/painterSorter';
 
 export interface ThemeColors {
   bg: string;
@@ -17,9 +24,22 @@ export interface ThemeColors {
   accentGold: string;
   ground: string;
   gridLine: string;
+  cactusGreen: string;
+  isCalpurnio?: boolean;
 }
 
 export const THEMES: Record<VisualTheme, ThemeColors> = {
+  calpurnio: {
+    bg: '#fde047', // Vibrant flat yellow sky
+    ink: '#111827', // Very thick clean black outlines
+    inkSubtle: '#4b5563',
+    accentRed: '#dc2626', // Signature comic vermilion
+    accentGold: '#ca8a04', // Flat ochre gold
+    ground: '#e29d33', // Flat ochre desert floor
+    gridLine: 'transparent', // Zero grid/gradients, screen-print flat look
+    cactusGreen: '#16a34a', // Simple green geometric cactus
+    isCalpurnio: true,
+  },
   ink: {
     bg: '#f7f4ed',
     ink: '#18181b',
@@ -28,6 +48,7 @@ export const THEMES: Record<VisualTheme, ThemeColors> = {
     accentGold: '#d97706',
     ground: '#e5dec9',
     gridLine: 'rgba(24, 24, 27, 0.05)',
+    cactusGreen: '#15803d',
   },
   midnight: {
     bg: '#0c0f12',
@@ -37,6 +58,7 @@ export const THEMES: Record<VisualTheme, ThemeColors> = {
     accentGold: '#fbbf24',
     ground: '#1e293b',
     gridLine: 'rgba(248, 250, 252, 0.05)',
+    cactusGreen: '#22c55e',
   },
   sepia: {
     bg: '#ede0cb',
@@ -46,12 +68,13 @@ export const THEMES: Record<VisualTheme, ThemeColors> = {
     accentGold: '#9a6a16',
     ground: '#dbc6aa',
     gridLine: 'rgba(45, 30, 21, 0.05)',
+    cactusGreen: '#2e7d32',
   },
 };
 
 export class LineRenderer {
   private ctx: CanvasRenderingContext2D;
-  public theme: VisualTheme = 'ink';
+  public theme: VisualTheme = 'calpurnio';
 
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx;
@@ -129,26 +152,30 @@ export class LineRenderer {
     }
     ctx.restore();
 
-    // Draw Rolling Desert Horizon Curve (Inspired by Image 2 curved ground hill)
+    // Draw Calpurnio Stark Flat Horizon & Ochre Desert Floor
     ctx.save();
+    // Desert ground is firmly anchored in world coordinates at Y = 212 (ground level for feet)
+    const horizonBaseY = 212 - cameraY;
+
+    // Stark flat ochre desert floor block (zero gradients, 1990s screen-print vector look)
+    ctx.fillStyle = colors.ground;
+    ctx.fillRect(0, horizonBaseY, width, Math.max(height - horizonBaseY, height + 1000));
+
+    // Razor-sharp thick black horizon line dividing vibrant yellow sky and ochre floor
     ctx.strokeStyle = colors.ink;
-    ctx.lineWidth = 3;
-    const horizonBaseY = height * 0.78 + (cameraY * -0.1);
+    ctx.lineWidth = 3.5;
     ctx.beginPath();
-    ctx.moveTo(0, horizonBaseY + Math.sin((cameraX * 0.002)) * 30);
-    for (let x = 0; x <= width; x += 40) {
-      const worldX = x + cameraX * 0.1;
-      const hillY = horizonBaseY + Math.sin(worldX * 0.002) * 35 + Math.cos(worldX * 0.005) * 15;
-      ctx.lineTo(x, hillY);
-    }
+    ctx.moveTo(0, horizonBaseY);
+    ctx.lineTo(width, horizonBaseY);
     ctx.stroke();
 
-    // Distant Cacti line silhouettes along horizon
-    const cactiPositions = [120, 480, 850, 1300, 1750];
-    cactiPositions.forEach((cx) => {
-      const screenCx = (cx - (cameraX * 0.15)) % (width + 300) - 100;
-      const cy = horizonBaseY + Math.sin((cx) * 0.002) * 35 - 10;
-      this.drawDistantCactus(screenCx, cy, 0.7);
+    // Geometric Simple Green Cacti with abundant negative space along the desert floor
+    const cactiPositions = [220, 680, 1150, 1680, 2240, -320, -820, -1400];
+    cactiPositions.forEach((cx, idx) => {
+      const screenCx = cx - cameraX;
+      if (screenCx > -100 && screenCx < width + 100) {
+        this.drawDistantCactus(screenCx, horizonBaseY, idx % 2 === 0 ? 0.9 : 0.75);
+      }
     });
 
     ctx.restore();
@@ -192,23 +219,132 @@ export class LineRenderer {
     ctx.restore();
   }
 
+  /** A single simple green geometric cactus (Calpurnio avant-garde vector look) */
   private drawDistantCactus(x: number, y: number, scale: number) {
     const ctx = this.ctx;
+    const colors = this.getColors();
     ctx.save();
+    ctx.fillStyle = colors.cactusGreen || '#16a34a';
+    ctx.strokeStyle = colors.ink;
+    ctx.lineWidth = 3.0;
+    ctx.lineJoin = 'miter';
+
+    const stemW = 14 * scale;
+    const stemH = 64 * scale;
+    const armW = 10 * scale;
+
+    // Central geometric vertical column
     ctx.beginPath();
-    // Central stem
-    ctx.moveTo(x, y);
-    ctx.lineTo(x, y - 50 * scale);
-    // Left arm
-    ctx.moveTo(x, y - 28 * scale);
-    ctx.lineTo(x - 16 * scale, y - 28 * scale);
-    ctx.lineTo(x - 16 * scale, y - 44 * scale);
-    // Right arm
-    ctx.moveTo(x, y - 36 * scale);
-    ctx.lineTo(x + 16 * scale, y - 36 * scale);
-    ctx.lineTo(x + 16 * scale, y - 54 * scale);
+    ctx.rect(x - stemW / 2, y - stemH, stemW, stemH);
+    ctx.fill();
     ctx.stroke();
+
+    // Left geometric right-angle arm
+    ctx.beginPath();
+    // Horizontal branch
+    ctx.rect(x - stemW / 2 - 14 * scale, y - 40 * scale, 14 * scale, armW);
+    // Vertical upright arm
+    ctx.rect(x - stemW / 2 - 14 * scale, y - 58 * scale, armW, 20 * scale);
+    ctx.fill();
+    ctx.stroke();
+
+    // Right geometric right-angle arm
+    ctx.beginPath();
+    // Horizontal branch
+    ctx.rect(x + stemW / 2, y - 48 * scale, 14 * scale, armW);
+    // Vertical upright arm
+    ctx.rect(x + stemW / 2 + 5 * scale, y - 68 * scale, armW, 22 * scale);
+    ctx.fill();
+    ctx.stroke();
+
     ctx.restore();
+  }
+
+  /**
+   * Render 2D Western Platforms (Saloon roofs, watchtowers, water tanks, sandstone mesa rocks)
+   */
+  public drawPlatforms(platforms: Platform[], cameraX: number, cameraY: number) {
+    const ctx = this.ctx;
+    const colors = this.getColors();
+
+    platforms.forEach((plat) => {
+      const px = plat.x - cameraX;
+      const py = plat.y - cameraY;
+
+      // Only draw if visible on viewport
+      if (px + plat.width < -120 || px > ctx.canvas.width + 120 || py < -200 || py > ctx.canvas.height + 150) {
+        return;
+      }
+
+      ctx.save();
+      if (plat.type === 'wood' || plat.type === 'roof') {
+        // Wooden support stilts anchored to the desert ground
+        ctx.strokeStyle = colors.ink;
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        const leg1X = px + 16;
+        const leg2X = px + plat.width - 16;
+        const groundScreenY = 212 - cameraY;
+        const legBottomY = Math.max(py + plat.height + 20, groundScreenY);
+
+        ctx.moveTo(leg1X, py + plat.height);
+        ctx.lineTo(leg1X, legBottomY);
+        ctx.moveTo(leg2X, py + plat.height);
+        ctx.lineTo(leg2X, legBottomY);
+
+        // Cross bracing beams
+        const midY = (py + plat.height + legBottomY) / 2;
+        ctx.moveTo(leg1X, py + plat.height + 10);
+        ctx.lineTo(leg2X, midY);
+        ctx.moveTo(leg2X, py + plat.height + 10);
+        ctx.lineTo(leg1X, midY);
+        ctx.stroke();
+
+        // Platform deck: solid white fill with black border
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(px, py, plat.width, plat.height);
+        ctx.strokeRect(px, py, plat.width, plat.height);
+
+        // Plank divisions
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        for (let bx = px + 22; bx < px + plat.width - 8; bx += 22) {
+          ctx.moveTo(bx, py);
+          ctx.lineTo(bx, py + plat.height);
+        }
+        ctx.stroke();
+
+        // Architectural label (e.g. SALOON, WATER TANK, JAIL TOWER)
+        if (plat.label) {
+          ctx.fillStyle = colors.ink;
+          ctx.font = 'bold 9px "Courier Prime", monospace';
+          ctx.fillText(plat.label, px + 8, py - 4);
+        }
+      } else {
+        // Sandstone mesa rock platform: solid white/ochre with black outline
+        ctx.fillStyle = '#FFFFFF';
+        ctx.strokeStyle = colors.ink;
+        ctx.lineWidth = 2.8;
+        ctx.beginPath();
+        ctx.roundRect(px, py, plat.width, plat.height, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        // Strata rock texture lines
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(px + 10, py + plat.height * 0.5);
+        ctx.lineTo(px + plat.width - 10, py + plat.height * 0.5);
+        ctx.stroke();
+
+        if (plat.label) {
+          ctx.fillStyle = colors.ink;
+          ctx.font = 'bold 9px "Courier Prime", monospace';
+          ctx.fillText(plat.label, px + 8, py - 4);
+        }
+      }
+      ctx.restore();
+    });
   }
 
   /**
@@ -229,34 +365,66 @@ export class LineRenderer {
     const py = player.y - cameraY;
 
     ctx.save();
-    ctx.translate(px, py);
 
     // Flashing when invulnerable
     if (player.invulnerableTimer > 0 && Math.floor(player.invulnerableTimer * 20) % 2 === 0) {
       ctx.globalAlpha = 0.45;
     }
 
-    // Ghost dash afterimages
-    if (player.isDashing) {
-      ctx.strokeStyle = colors.accentRed;
-      ctx.lineWidth = player.lineThickness + 1;
-    } else {
-      ctx.strokeStyle = colors.ink;
-      ctx.lineWidth = player.lineThickness;
-    }
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
     if (player.isMounted) {
       // ----------------------------------------------------
-      // DRAW MOUNTED COWBOY ON HORSE (Matches attached Image 2!)
+      // COMPOSITE MOUNTED SYSTEM: CUTTLAS ON WHITE STALLION
+      // Unified 4-layer depth stack with Painter's Algorithm
       // ----------------------------------------------------
-      this.drawRearingHorseAndRider(player, colors);
+      const primitives = CompositeMountedRig.generatePrimitives({
+        x: px,
+        y: py,
+        facingDir: player.facingDir || (Math.cos(player.angle) >= 0 ? 1 : -1),
+        stridePhase: player.horseGallopCycle,
+        isMoving: Math.abs(player.vx) > 15,
+        isCantering: Math.hypot(player.vx, player.vy) > 240,
+        aimAngle: player.angle,
+        isShooting: player.weapon === 'revolver' || player.quickDrawTimer > 0,
+        isSlashing: player.isSlashing,
+        identity: 'cuttlas',
+        timeSec: player.timeSec || 0,
+      });
+      PainterSorter.renderPrimitives(ctx, primitives);
     } else {
       // ----------------------------------------------------
-      // DRAW ON-FOOT COWBOY (Matches attached Image 1!)
+      // HUMANOID 2.5D RIG: CUTTLAS ON FOOT
+      // 2-segment 3D IK, solid opaque white volumes, 12 FPS feel
       // ----------------------------------------------------
-      this.drawOnFootCowboy(player, colors);
+      const isGrounded = player.isGrounded !== false;
+      const isMoving = Math.abs(player.vx) > 15 && isGrounded;
+
+      const primitives = Humanoid25DRig.generatePrimitives({
+        x: px,
+        y: py,
+        facingDir: player.facingDir || (Math.cos(player.angle) >= 0 ? 1 : -1),
+        currentYaw: player.currentYaw ?? (Math.cos(player.angle) >= 0 ? 0 : Math.PI),
+        aimAngle: player.angle,
+        walkCycle: player.walkCycle,
+        isMoving,
+        isGrounded,
+        weaponType: player.weapon,
+        isShooting: (player.weapon === 'revolver' && player.gunTimer > 0) || player.quickDrawTimer > 0,
+        isSlashing: player.isSlashing,
+        isThinking: !!player.isThinking,
+        isMounted: false,
+        slashProgress: player.slashProgress,
+        identity: 'cuttlas',
+        timeSec: player.timeSec || 0,
+      });
+      PainterSorter.renderPrimitives(ctx, primitives);
+    }
+
+    // Dynamic slash arc trail
+    if (player.isSlashing) {
+      ctx.save();
+      ctx.translate(px, py);
+      this.drawSlashArc(player, player.angle, colors);
+      ctx.restore();
     }
 
     ctx.restore();
@@ -270,11 +438,11 @@ export class LineRenderer {
     const walkCos = Math.cos(player.walkCycle);
     const isMoving = Math.abs(player.vx) > 0.1 || Math.abs(player.vy) > 0.1;
 
-    // Center of player is at (0, 0)
-    // Head: oval at (0, -28)
-    // Hat: brim at (0, -36) and dome crown above
-    // Torso: elongated oval from (0, -18) to (0, 14)
-    // Legs: from (0, 14) down to feet at y = 46
+    // Check if in Sitting/Thinking pose (Calpurnio's iconic philosopher cowboy pose)
+    if (player.isThinking) {
+      this.drawThinkingCuttlas(player, colors);
+      return;
+    }
 
     // 1. LEGS & FEET (Stick lines with L-foot)
     const legSwing = isMoving ? walk * 14 : 0;
@@ -297,42 +465,67 @@ export class LineRenderer {
     ctx.lineTo(rightFootX + 10, rightFootY); // L-shaped foot
     ctx.stroke();
 
-    // 2. HOLSTER ON HIP (Iconic angled holster from Image 1)
+    // 2. HOLSTER ON HIP (Blocky '7' holster from image.png)
+    const isGunDrawn = player.weapon === 'revolver' || player.quickDrawTimer > 0;
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(-7, 4);
-    ctx.lineTo(-14, 4);
-    ctx.lineTo(-14, 16);
-    ctx.lineTo(-9, 16);
-    ctx.lineTo(-9, 8);
+    ctx.moveTo(-4, 6);
+    ctx.lineTo(-14, 6);
+    ctx.lineTo(-14, 22);
+    ctx.lineTo(-9, 22);
+    ctx.lineTo(-9, 13);
+    ctx.lineTo(-4, 13);
+    ctx.closePath();
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.stroke();
+
+    // If gun is NOT drawn in hand, show gun grip sticking out of holster
+    if (!isGunDrawn && player.weapon !== 'revolver') {
+      ctx.beginPath();
+      ctx.moveTo(-11, 6);
+      ctx.lineTo(-7, 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // 3. ELONGATED OVAL TORSO (Exact match to image.png, NOT a rectangle)
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 8.5, 26, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
     ctx.stroke();
     ctx.restore();
 
-    // 3. ELONGATED OVAL TORSO (From Image 1)
+    // 4. WHITE OVAL HEAD (Blank face from image.png, no eye line)
+    ctx.save();
+    const headTilt = (aimAngle > Math.PI / 2 || aimAngle < -Math.PI / 2) ? -0.06 : 0.06;
+    ctx.translate(0, -36);
+    ctx.rotate(headTilt);
+
+    // Oval head from image.png
     ctx.beginPath();
-    // Center at (0, -2), radiusX: 7, radiusY: 18
-    ctx.ellipse(0, -2, 7.5, 18, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 6.0, 10.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
     ctx.stroke();
 
-    // 4. OVAL HEAD & HAT (From Image 1)
-    // Oval head at (0, -28)
+    // Hat from image.png: straight horizontal brim line + dome crown
     ctx.beginPath();
-    ctx.ellipse(0, -28, 5.5, 8.5, 0, 0, Math.PI * 2);
+    ctx.arc(0, -9.5, 7.5, Math.PI, 0, false);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
     ctx.stroke();
 
-    // Hat: Brim line at y = -36, width 32
     ctx.beginPath();
-    ctx.moveTo(-16, -36);
-    ctx.lineTo(16, -36);
+    ctx.moveTo(-18, -9.5);
+    ctx.lineTo(18, -9.5);
     ctx.stroke();
+    ctx.restore();
 
-    // Hat Crown: dome on top of brim
-    ctx.beginPath();
-    ctx.arc(0, -36, 7.5, Math.PI, 0, false);
-    ctx.stroke();
-
-    // 5. ARMS & 3-FINGER SPLAYED HANDS (From Image 1)
-    // Left arm (free arm with 3-finger splay)
+    // 5. ARMS & 3-FINGER SPLAYED HANDS (From attached image)
+    // Left arm (free arm with 3-finger splay, or fanning gun hammer if shooting!)
     const leftArmAngle = Math.PI * 0.7 + (isMoving ? -walk * 0.4 : 0);
     const leftHandX = Math.cos(leftArmAngle) * 26;
     const leftHandY = -14 + Math.sin(leftArmAngle) * 26;
@@ -344,10 +537,10 @@ export class LineRenderer {
     this.drawThreeFingerHand(leftHandX, leftHandY, leftArmAngle);
     ctx.stroke();
 
-    // Right arm (Weapon Arm - aiming toward aimAngle)
+    // Right arm (Weapon Arm - aiming toward aimAngle or drawn from holster!)
     const shoulderX = 7;
     const shoulderY = -14;
-    const armLen = 22;
+    const armLen = isGunDrawn ? 26 : 22;
     const weaponHandX = shoulderX + Math.cos(aimAngle) * armLen;
     const weaponHandY = shoulderY + Math.sin(aimAngle) * armLen;
 
@@ -356,20 +549,55 @@ export class LineRenderer {
     ctx.lineTo(weaponHandX, weaponHandY);
     ctx.stroke();
 
-    // 6. DRAW WEAPON (Cutlas or Revolver)
-    if (player.weapon === 'cutlas' || player.weapon === 'dual_cutlas' || player.weapon === 'razor_wave') {
+    // 6. DRAW WEAPON (Revolver or Cutlas)
+    if (player.weapon === 'revolver' || player.quickDrawTimer > 0) {
+      this.drawRevolver(weaponHandX, weaponHandY, aimAngle, player);
+    } else {
       this.drawCutlas(weaponHandX, weaponHandY, aimAngle, player);
       if (player.weapon === 'dual_cutlas') {
         // Draw second cutlas in left hand
         this.drawCutlas(leftHandX, leftHandY, leftArmAngle - 0.5, player, true);
       }
-    } else {
-      this.drawRevolver(weaponHandX, weaponHandY, aimAngle, player);
     }
 
     // 7. SWORD SLASH ANIMATION (Dynamic line trail arc)
     if (player.isSlashing) {
       this.drawSlashArc(player, aimAngle, colors);
+    }
+  }
+
+  /**
+   * Draw Kotlas's Loyal White Dog Companion (from the beloved animated series)
+   * Pure minimalist line art dog: white filled body, floppy ears, wagging tail, paws!
+   */
+  public drawWhiteDog(dog: Player['dog'], cameraX: number, cameraY: number) {
+    const ctx = this.ctx;
+    const colors = this.getColors();
+    const dx = dog.x - cameraX;
+    const dy = dog.y - cameraY;
+
+    // 2.5D Dog Rig with diagonal trot cycle, 3D oscillating tail, and solid white body depth occlusion
+    const primitives = Dog25DRig.generatePrimitives({
+      x: dx,
+      y: dy,
+      facingDir: Math.cos(dog.angle) >= 0 ? 1 : -1,
+      walkCycle: dog.walkCycle,
+      tailWag: dog.tailWag,
+      isMoving: Math.hypot(dog.vx, dog.vy) > 5,
+      carryingBounty: dog.carryingBountyValue,
+      timeSec: dog.walkCycle / 10,
+    });
+    PainterSorter.renderPrimitives(ctx, primitives);
+
+    // Happy heart / bark bubble when close to Kotlas or barking
+    if (dog.state === 'happy') {
+      ctx.save();
+      ctx.strokeStyle = colors.accentRed;
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.arc(dx, dy - 22, 5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
     }
   }
 
@@ -454,22 +682,29 @@ export class LineRenderer {
     ctx.stroke();
 
     // --- COWBOY RIDER (Mounted on back) ---
-    // Rider Torso
+    // Rider Torso (Solid white oval from image.png)
     ctx.beginPath();
     ctx.ellipse(2, -8, 6.5, 14, 0.1, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
     ctx.stroke();
 
-    // Rider Head & Hat
+    // Rider Head (Solid white oval from image.png)
     ctx.beginPath();
     ctx.ellipse(3, -28, 5, 7.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
     ctx.stroke();
-    // Hat
+
+    // Hat (Straight horizontal brim line + dome crown from image.png)
+    ctx.beginPath();
+    ctx.arc(3, -35, 6.5, Math.PI, 0, false);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(-10, -35);
     ctx.lineTo(16, -35);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(3, -35, 6.5, Math.PI, 0, false);
     ctx.stroke();
 
     // Rider Legs wrapped around horse
@@ -551,27 +786,100 @@ export class LineRenderer {
     ctx.restore();
   }
 
-  /** Revolver pistol with barrel and cylinder */
-  private drawRevolver(x: number, y: number, angle: number, player: Player) {
+  /** Tiny minimalist black revolver (Calpurnio's iconic sidearm) */
+  private drawRevolver(x: number, y: number, angle: number, _player: Player) {
     const ctx = this.ctx;
+    const colors = this.getColors();
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle);
 
-    // Grip
+    ctx.fillStyle = colors.ink;
+    ctx.strokeStyle = colors.ink;
+    ctx.lineWidth = 1.5;
+
+    // Tiny grip
+    ctx.fillRect(-3, 0, 4, 7);
+    // Cylinder
+    ctx.fillRect(0, -3.5, 5, 7);
+    // Tiny barrel
+    ctx.fillRect(5, -2, 8, 4);
+
+    ctx.restore();
+  }
+
+  /** Sitting & Thinking pose (Calpurnio's philosophical Cuttlas) */
+  private drawThinkingCuttlas(player: Player, colors: ThemeColors) {
+    const ctx = this.ctx;
+    ctx.save();
+
+    // Seated legs folded on ground
+    ctx.strokeStyle = colors.ink;
     ctx.lineWidth = player.lineThickness;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(-5, 6);
+    // Left bent leg
+    ctx.moveTo(-4, 10);
+    ctx.lineTo(-14, 22);
+    ctx.lineTo(2, 22);
+    // Right bent leg with knee up
+    ctx.moveTo(4, 10);
+    ctx.lineTo(12, 8);
+    ctx.lineTo(14, 22);
     ctx.stroke();
 
-    // Barrel
+    // Elongated solid white vertical oval torso from image.png slightly tilted
+    ctx.save();
+    ctx.translate(0, 0);
+    ctx.rotate(-0.1);
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(14, 0);
-    // Cylinder line
-    ctx.moveTo(2, -3);
-    ctx.lineTo(2, 3);
+    ctx.ellipse(0, 0, 8, 24, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.strokeStyle = colors.ink;
+    ctx.lineWidth = 2.8;
+    ctx.stroke();
+
+    // Left arm propping chin with 3-finger hand
+    ctx.beginPath();
+    ctx.moveTo(-4, -14);
+    ctx.lineTo(14, 2);
+    ctx.lineTo(8, -24);
+    ctx.stroke();
+    this.drawThreeFingerHand(8, -24, -1.8);
+
+    // Blank vertical oval head from image.png tilted in thought
+    ctx.translate(3, -32);
+    ctx.rotate(-0.15);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 6, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.stroke();
+
+    // Hat from image.png: straight horizontal line brim + dome crown
+    ctx.beginPath();
+    ctx.arc(0, -9, 7.5, Math.PI, 0, false);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(-18, -9);
+    ctx.lineTo(18, -9);
+    ctx.stroke();
+    ctx.restore();
+
+    // Thought bubble / single question line
+    ctx.strokeStyle = colors.inkSubtle;
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.arc(18, -36, 3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(26, -46, 5, 0, Math.PI * 2);
     ctx.stroke();
 
     ctx.restore();
@@ -629,9 +937,45 @@ export class LineRenderer {
 
     switch (enemy.type) {
       case 'bandit':
-      case 'scout':
-        this.drawBanditStick(enemy, colors);
+      case 'scout': {
+        const identity: CharacterIdentity = enemy.characterIdentity || 'bandit';
+        const primitives = Humanoid25DRig.generatePrimitives({
+          x: 0,
+          y: 0,
+          facingDir: enemy.facingDir || (Math.cos(enemy.angle) >= 0 ? 1 : -1),
+          currentYaw: enemy.currentYaw ?? (Math.cos(enemy.angle) >= 0 ? 0 : Math.PI),
+          aimAngle: enemy.angle,
+          walkCycle: enemy.walkCycle,
+          isMoving: Math.hypot(enemy.vx, enemy.vy) > 5,
+          weaponType: enemy.type === 'scout' || identity === 'jak' ? 'revolver' : 'cutlas',
+          isShooting: enemy.type === 'scout' || identity === 'jak',
+          isSlashing: false,
+          isThinking: identity === 'juan_bala',
+          isMounted: false,
+          slashProgress: 0,
+          identity,
+          timeSec: enemy.timeSec || 0,
+        });
+        PainterSorter.renderPrimitives(ctx, primitives);
         break;
+      }
+      case 'rider': {
+        const primitives = CompositeMountedRig.generatePrimitives({
+          x: 0,
+          y: 0,
+          facingDir: enemy.facingDir || (Math.cos(enemy.angle) >= 0 ? 1 : -1),
+          stridePhase: enemy.walkCycle * 2,
+          isMoving: true,
+          isCantering: true,
+          aimAngle: enemy.angle,
+          isShooting: true,
+          isSlashing: false,
+          identity: 'bandit',
+          timeSec: enemy.timeSec || 0,
+        });
+        PainterSorter.renderPrimitives(ctx, primitives);
+        break;
+      }
       case 'vulture':
         this.drawVultureStick(enemy, colors);
         break;
@@ -641,12 +985,31 @@ export class LineRenderer {
       case 'brute':
         this.drawBruteStick(enemy, colors);
         break;
-      case 'rider':
-        this.drawEnemyRider(enemy, colors);
+      case 'boss': {
+        if (enemy.characterIdentity === 'jak') {
+          const primitives = Humanoid25DRig.generatePrimitives({
+            x: 0,
+            y: 0,
+            facingDir: enemy.facingDir || (Math.cos(enemy.angle) >= 0 ? 1 : -1),
+            currentYaw: enemy.currentYaw ?? 0,
+            aimAngle: enemy.angle,
+            walkCycle: enemy.walkCycle,
+            isMoving: true,
+            weaponType: 'revolver',
+            isShooting: true,
+            isSlashing: false,
+            isThinking: false,
+            isMounted: false,
+            slashProgress: 0,
+            identity: 'jak',
+            timeSec: enemy.timeSec || 0,
+          });
+          PainterSorter.renderPrimitives(ctx, primitives);
+        } else {
+          this.drawBossOutlaw(enemy, colors);
+        }
         break;
-      case 'boss':
-        this.drawBossOutlaw(enemy, colors);
-        break;
+      }
     }
 
     // Health bar above enemy if damaged
@@ -686,14 +1049,18 @@ export class LineRenderer {
     ctx.lineTo(14 - walk, 28);
     ctx.stroke();
 
-    // Torso
+    // Torso (Solid white volume)
     ctx.beginPath();
     ctx.ellipse(0, 0, 5, 12, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
     ctx.stroke();
 
-    // Head
+    // Head (Solid white volume)
     ctx.beginPath();
     ctx.ellipse(0, -18, 5, 6.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
     ctx.stroke();
 
     // Bandana Mask (V-line across lower face)
@@ -703,18 +1070,19 @@ export class LineRenderer {
     ctx.lineTo(5, -17);
     ctx.stroke();
 
-    // Hat (Sombrero/bandit hat: wider curved brim)
+    // Hat (Sombrero/bandit hat with solid white fill)
     ctx.beginPath();
     ctx.moveTo(-16, -24);
     ctx.quadraticCurveTo(0, -22, 16, -24);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(-7, -24);
-    ctx.lineTo(0, -32);
     ctx.lineTo(7, -24);
+    ctx.lineTo(0, -32);
+    ctx.lineTo(-7, -24);
+    ctx.closePath();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
     ctx.stroke();
 
-    // Arms & Weapon
+    // Arms & Weapon with 3-finger hand
     const armX = Math.cos(enemy.angle) * 16;
     const armY = -8 + Math.sin(enemy.angle) * 16;
     ctx.beginPath();
@@ -723,6 +1091,9 @@ export class LineRenderer {
     // Knife or pistol
     ctx.lineTo(armX + Math.cos(enemy.angle) * 8, armY + Math.sin(enemy.angle) * 8);
     ctx.stroke();
+
+    // 3-finger hand
+    drawThreeFingerHand(ctx, armX, armY, enemy.angle, 7, 2.2, '#000000');
   }
 
   /** Vulture enemy: flapping zigzag line wings, sharp curved beak */
@@ -795,14 +1166,18 @@ export class LineRenderer {
     const ctx = this.ctx;
     const walk = Math.sin(enemy.walkCycle) * 6;
 
-    // Thick torso
+    // Thick solid white torso
     ctx.beginPath();
     ctx.ellipse(0, -4, 12, 18, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
     ctx.stroke();
 
-    // Head
+    // Solid white head
     ctx.beginPath();
     ctx.ellipse(0, -28, 8, 9, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
     ctx.stroke();
 
     // Metal jaw plate
@@ -883,9 +1258,11 @@ export class LineRenderer {
     const ctx = this.ctx;
     const walk = Math.sin(enemy.walkCycle) * 10;
 
-    // Massive torso
+    // Massive solid white torso
     ctx.beginPath();
     ctx.ellipse(0, -6, 16, 26, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
     ctx.stroke();
 
     // Torso ribcage cross lines (skeletal look)
@@ -896,23 +1273,30 @@ export class LineRenderer {
       ctx.stroke();
     }
 
-    // Skull head
+    // Solid white skull head
     ctx.beginPath();
     ctx.ellipse(0, -40, 11, 13, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
+    ctx.stroke();
+
     // Eye sockets
+    ctx.beginPath();
     ctx.moveTo(-5, -42);
     ctx.lineTo(-3, -40);
     ctx.moveTo(3, -40);
     ctx.lineTo(5, -42);
     ctx.stroke();
 
-    // Horned / Spiked Boss Sombrero
+    // Horned / Spiked Boss Sombrero with solid white fill
     ctx.beginPath();
     ctx.moveTo(-28, -50);
     ctx.quadraticCurveTo(0, -46, 28, -50);
     ctx.lineTo(14, -68);
     ctx.lineTo(-14, -68);
     ctx.closePath();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
     ctx.stroke();
 
     // Giant legs
@@ -1061,6 +1445,39 @@ export class LineRenderer {
       ctx.moveTo(-p.length / 2, 0);
       ctx.lineTo(p.length / 2, 0);
       ctx.stroke();
+    } else if (p.type === 'heart') {
+      // Chivalrous / Kindness floating line heart
+      ctx.translate(px, py);
+      ctx.strokeStyle = p.color || colors.accentRed;
+      ctx.lineWidth = 2.0;
+      ctx.beginPath();
+      const s = 1.2;
+      ctx.moveTo(0, 3 * s);
+      ctx.bezierCurveTo(-6 * s, -4 * s, -10 * s, 4 * s, 0, 12 * s);
+      ctx.bezierCurveTo(10 * s, 4 * s, 6 * s, -4 * s, 0, 3 * s);
+      ctx.stroke();
+    } else if (p.type === 'bang') {
+      // Comic BANG! action starburst and text
+      ctx.translate(px, py);
+      ctx.strokeStyle = colors.accentRed;
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      const points = 8;
+      for (let i = 0; i < points * 2; i++) {
+        const rad = (i % 2 === 0) ? 18 : 9;
+        const a = (i * Math.PI) / points;
+        const bx = Math.cos(a) * rad;
+        const by = Math.sin(a) * rad;
+        if (i === 0) ctx.moveTo(bx, by);
+        else ctx.lineTo(bx, by);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = colors.ink;
+      ctx.font = 'bold 9px "Courier Prime", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('BANG!', 0, 0);
     } else if (p.type === 'smoke' || p.type === 'dust') {
       // Little line loops / dust rings
       ctx.strokeStyle = colors.inkSubtle;

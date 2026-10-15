@@ -91,6 +91,19 @@ export const HUD: React.FC<HUDProps> = ({
               <span className={`text-[11px] ${subtleColor}`}>SCORE</span>
               <span className={`${textColor} tabular-nums`}>{stats.score}</span>
             </div>
+
+            {/* White Dog Status Badge */}
+            {player.dog && (
+              <>
+                <div className={`h-3.5 w-px ${isDark ? 'bg-slate-700' : 'bg-stone-300'}`} />
+                <div className="flex items-center gap-1 text-[11px]">
+                  <span className="text-red-600 font-bold">♥</span>
+                  <span className={`${textColor} uppercase font-bold text-[10px]`}>
+                    DOG: {player.dog.carryingBountyValue > 0 ? 'FETCHING' : player.dog.state}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -141,9 +154,13 @@ export const HUD: React.FC<HUDProps> = ({
         <div className={`hidden md:flex items-center gap-3 text-xs p-2.5 rounded border-2 ${borderCol} ${bgPanel} ${subtleColor}`}>
           <span><kbd className="px-1.5 py-0.5 border border-stone-400 rounded text-[11px] font-bold">WASD</kbd> Move</span>
           <span>·</span>
-          <span><kbd className="px-1.5 py-0.5 border border-stone-400 rounded text-[11px] font-bold">L-Click</kbd> Slash/Fire</span>
+          <span><kbd className="px-1.5 py-0.5 border border-stone-400 rounded text-[11px] font-bold">L-Click</kbd> Attack</span>
+          <span>·</span>
+          <span><kbd className="px-1.5 py-0.5 border border-stone-400 rounded text-[11px] font-bold">Q</kbd> Switch Gun/Sword</span>
           <span>·</span>
           <span><kbd className="px-1.5 py-0.5 border border-stone-400 rounded text-[11px] font-bold">R-Click</kbd> Dash</span>
+          <span>·</span>
+          <span><kbd className="px-1.5 py-0.5 border border-stone-400 rounded text-[11px] font-bold">T</kbd> Meditate</span>
           {player.horseUnlocked && (
             <>
               <span>·</span>
@@ -153,7 +170,7 @@ export const HUD: React.FC<HUDProps> = ({
           {player.dynamiteUnlocked && (
             <>
               <span>·</span>
-              <span><kbd className="px-1.5 py-0.5 border border-stone-400 rounded text-[11px] font-bold">Q</kbd> Dynamite</span>
+              <span><kbd className="px-1.5 py-0.5 border border-stone-400 rounded text-[11px] font-bold">F</kbd> Dynamite</span>
             </>
           )}
         </div>

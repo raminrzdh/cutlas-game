@@ -421,6 +421,108 @@ class SynthEngine {
     });
   }
 
+  /** White Dog procedural synth bark (Arf! / Woof!) */
+  public playDogBark() {
+    this.initCtx();
+    if (!this.ctx || !this.sfxGain) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+
+    // Quick downward chirped bark
+    const pitch = 360 + Math.random() * 60;
+    osc.frequency.setValueAtTime(pitch * 1.6, now);
+    osc.frequency.exponentialRampToValueAtTime(pitch, now + 0.04);
+    osc.frequency.exponentialRampToValueAtTime(pitch * 0.7, now + 0.12);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.35, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.14);
+  }
+
+  /** White Dog Courage Howl (encouraging chivalry & stun) */
+  public playDogHowl() {
+    this.initCtx();
+    if (!this.ctx || !this.sfxGain) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(620, now + 0.25);
+    osc.frequency.exponentialRampToValueAtTime(580, now + 0.55);
+    osc.frequency.exponentialRampToValueAtTime(300, now + 0.85);
+
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(0.3, now + 0.2);
+    gain.gain.setValueAtTime(0.28, now + 0.55);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.86);
+  }
+
+  /** Kindness Heart chime */
+  public playKindnessHeart() {
+    this.initCtx();
+    if (!this.ctx || !this.sfxGain) return;
+    const now = this.ctx.currentTime;
+
+    const notes = [659.25, 830.61, 987.77]; // E5, G#5, B5 (Warm major chime)
+    notes.forEach((freq, i) => {
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + i * 0.06);
+
+      gain.gain.setValueAtTime(0.18, now + i * 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.35);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain!);
+
+    });
+  }
+
+  /** Crisp 2D cartoon jump / springy leap sound */
+  public playJump() {
+    this.initCtx();
+    if (!this.ctx || !this.sfxGain) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+
+    // Upward pitch bend (springy cartoon leap)
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(380, now + 0.14);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.24, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.17);
+  }
+
   // --- Dynamic Procedural Spaghetti-Western Synth Music Engine ---
 
   public startMusic() {

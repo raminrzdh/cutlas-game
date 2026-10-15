@@ -12,6 +12,7 @@ import { HUD } from './components/HUD';
 import { UpgradeModal } from './components/UpgradeModal';
 import { GameOverModal } from './components/GameOverModal';
 import { PauseModal } from './components/PauseModal';
+import { SpriteSheetModal } from './components/SpriteSheetModal';
 import { sound } from './audio/synthEngine';
 
 export default function App() {
@@ -20,7 +21,8 @@ export default function App() {
 
   // React state for UI overlays only (isolated from 60fps canvas loop)
   const [gameState, setGameState] = useState<GameStateMode>('title');
-  const [theme, setTheme] = useState<VisualTheme>('ink');
+  const [theme, setTheme] = useState<VisualTheme>('calpurnio');
+  const [showSpriteSheet, setShowSpriteSheet] = useState<boolean>(false);
   const [stats, setStats] = useState<GameStats>({
     bounty: 0,
     score: 0,
@@ -29,6 +31,7 @@ export default function App() {
     slashes: 0,
     shotsFired: 0,
     shotsHit: 0,
+    chivalryActs: 0,
     timeSurvived: 0,
     highScore: 0,
   });
@@ -86,9 +89,10 @@ export default function App() {
 
   const handleToggleTheme = useCallback(() => {
     setTheme((prev) => {
+      if (prev === 'calpurnio') return 'ink';
       if (prev === 'ink') return 'midnight';
       if (prev === 'midnight') return 'sepia';
-      return 'ink';
+      return 'calpurnio';
     });
   }, []);
 
@@ -137,8 +141,18 @@ export default function App() {
     }
   }, []);
 
+  const handleAdoptPose = useCallback((pose: 'thinking' | 'shooting' | 'walking' | 'idle') => {
+    if (engineRef.current) {
+      if (pose === 'thinking') {
+        engineRef.current.player.isThinking = true;
+      } else {
+        engineRef.current.player.isThinking = false;
+      }
+    }
+  }, []);
+
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#f7f4ed] select-none font-mono">
+    <div className={`relative w-screen h-screen overflow-hidden ${theme === 'calpurnio' ? 'bg-[#fde047]' : theme === 'midnight' ? 'bg-[#0c0f12]' : 'bg-[#f7f4ed]'} select-none font-mono`}>
       {/* 60fps Canvas Viewport */}
       <canvas
         ref={canvasRef}
@@ -156,6 +170,7 @@ export default function App() {
           onToggleTheme={handleToggleTheme}
           onToggleMute={handleToggleMute}
           onToggleMusic={handleToggleMusic}
+          onOpenSpriteSheet={() => setShowSpriteSheet(true)}
         />
       )}
 
@@ -210,6 +225,14 @@ export default function App() {
           stats={stats}
           theme={theme}
           onRestart={handleStartGame}
+        />
+      )}
+
+      {/* Calpurnio Sprite Sheet & Poses Modal */}
+      {showSpriteSheet && (
+        <SpriteSheetModal
+          onClose={() => setShowSpriteSheet(false)}
+          onAdoptPose={handleAdoptPose}
         />
       )}
     </div>

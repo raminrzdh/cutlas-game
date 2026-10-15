@@ -11,6 +11,7 @@ interface TitleScreenProps {
   onToggleTheme: () => void;
   onToggleMute: () => void;
   onToggleMusic: () => void;
+  onOpenSpriteSheet?: () => void;
 }
 
 export const TitleScreen: React.FC<TitleScreenProps> = ({
@@ -22,6 +23,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   onToggleTheme,
   onToggleMute,
   onToggleMusic,
+  onOpenSpriteSheet,
 }) => {
   const isDark = theme === 'midnight';
   const textColor = isDark ? 'text-slate-100' : 'text-stone-900';
@@ -143,6 +145,29 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             <line x1="92" y1="60" x2="84" y2="62" />
             <line x1="92" y1="60" x2="88" y2="70" />
 
+            {/* Loyal White Dog Companion (from the animated series) */}
+            <g transform="translate(45, 135)">
+              {/* White dog body */}
+              <ellipse cx="14" cy="12" rx="10" ry="6" fill="#ffffff" stroke="currentColor" strokeWidth="2.2" />
+              {/* Dog head */}
+              <ellipse cx="23" cy="7" rx="5" ry="4" fill="#ffffff" stroke="currentColor" strokeWidth="2.2" />
+              {/* Nose */}
+              <circle cx="28" cy="7" r="1.2" fill="currentColor" />
+              {/* Floppy ear */}
+              <line x1="22" y1="4" x2="19" y2="8" stroke="currentColor" strokeWidth="2" />
+              {/* Red collar */}
+              <line x1="19" y1="9" x2="19" y2="15" stroke="#dc2626" strokeWidth="2.5" />
+              {/* Wagging tail */}
+              <line x1="4" y1="11" x2="-3" y2="3" stroke="currentColor" strokeWidth="2.2" />
+              {/* 4 stick legs */}
+              <line x1="20" y1="18" x2="21" y2="28" stroke="currentColor" strokeWidth="2.2" />
+              <line x1="16" y1="18" x2="14" y2="28" stroke="currentColor" strokeWidth="2.2" />
+              <line x1="11" y1="18" x2="10" y2="28" stroke="currentColor" strokeWidth="2.2" />
+              <line x1="7" y1="18" x2="5" y2="28" stroke="currentColor" strokeWidth="2.2" />
+              {/* Floating affection heart */}
+              <path d="M14 0 C11 -4 8 0 14 5 C20 0 17 -4 14 0" fill="#dc2626" stroke="#dc2626" strokeWidth="1" />
+            </g>
+
             {/* Horizon curve */}
             <path d="M20 170 Q110 162 200 170" stroke="currentColor" strokeWidth="2.5" />
           </svg>
@@ -150,7 +175,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
 
         {/* Bespoke Inline SVG Title Lockup */}
         <h1 className="sr-only">CUTLAS</h1>
-        <div className="w-full max-w-md px-4 mb-3">
+        <div className="w-full max-w-md px-4 mb-2">
           <svg
             viewBox="0 0 400 90"
             className="w-full h-auto overflow-visible"
@@ -177,19 +202,37 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           </svg>
         </div>
 
-        <p className={`text-sm md:text-base font-medium max-w-md mb-8 ${subtleColor}`}>
-          A pure line-art frontier action rogue. Slash with cutlas, draw your six-shooter, mount the rearing stallion, and upgrade your ink.
-        </p>
+        {/* Story subtitle in English and Persian honoring Cuttlas & his dog */}
+        <div className="flex flex-col items-center gap-1 mb-6">
+          <span className="text-xs md:text-sm font-bold text-amber-600 tracking-wide">
+            کوتلاس و سگ باوفایش · KOTLAS & HIS LOYAL DOG
+          </span>
+          <p className={`text-xs md:text-sm font-medium max-w-lg leading-relaxed ${subtleColor}`}>
+            Kotlas is a white character who embarks on frontier adventures with his faithful white dog. Equipped with his trusty hip holster gun and cutlas, he solves challenges with chivalry, kindness, and lightning-fast draws.
+          </p>
+        </div>
 
-        {/* Start CTA Button */}
-        <button
-          onClick={onStart}
-          className={`px-8 py-3.5 rounded border-2 ${borderCol} ${textColor} hover:bg-stone-900 hover:text-white dark:hover:bg-white dark:hover:text-black transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-3 font-bold text-base tracking-wider shadow-md`}
-        >
-          <Play size={18} className="fill-current" />
-          <span>START DUEL</span>
-          <span className="text-xs opacity-60 font-mono">[SPACE / ENTER]</span>
-        </button>
+        {/* Start CTA & Character Poses Buttons */}
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <button
+            onClick={onStart}
+            className={`px-8 py-3.5 rounded border-2 ${borderCol} ${textColor} hover:bg-stone-900 hover:text-white dark:hover:bg-white dark:hover:text-black transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-3 font-bold text-base tracking-wider shadow-md cursor-pointer`}
+          >
+            <Play size={18} className="fill-current" />
+            <span>START DUEL</span>
+            <span className="text-xs opacity-60 font-mono">[SPACE / ENTER]</span>
+          </button>
+
+          {onOpenSpriteSheet && (
+            <button
+              onClick={onOpenSpriteSheet}
+              className={`px-5 py-3.5 rounded border-2 ${borderCol} ${textColor} bg-white/60 dark:bg-black/40 hover:bg-stone-900 hover:text-white transition-all font-bold text-xs uppercase tracking-wider cursor-pointer flex items-center gap-2`}
+              title="View 4 Calpurnio Character Poses (Idle, Walking, Shooting, Thinking)"
+            >
+              <span>CHARACTER POSES</span>
+            </button>
+          )}
+        </div>
 
         {/* High Score Readout */}
         {highScore > 0 && (
@@ -202,15 +245,19 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
 
       {/* Flat Single-Line Control Hint */}
       <div className={`w-full text-center text-xs md:text-sm py-2 border-t ${isDark ? 'border-slate-800 text-slate-400' : 'border-stone-300 text-stone-600'}`}>
-        <span>WASD Move</span>
+        <span>A / D Run</span>
         <span className="mx-2">·</span>
-        <span>L-Click Slash / Shoot</span>
+        <span className="font-bold text-amber-600">W / Space Jump (Gravity)</span>
         <span className="mx-2">·</span>
-        <span>R-Click Dash</span>
+        <span>S Drop / Fast-fall</span>
         <span className="mx-2">·</span>
-        <span>Space / E Mount Horse</span>
+        <span>L-Click Shoot / Slash</span>
         <span className="mx-2">·</span>
-        <span>1 / 2 Switch Weapon</span>
+        <span>1 / 2 Weapon</span>
+        <span className="mx-2">·</span>
+        <span>E Mount Horse</span>
+        <span className="mx-2">·</span>
+        <span>T Meditate</span>
         <span className="mx-2">·</span>
         <span>Esc Pause</span>
       </div>

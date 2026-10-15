@@ -1,15 +1,37 @@
-export type WeaponType = 'cutlas' | 'revolver' | 'dual_cutlas' | 'shotgun' | 'razor_wave';
+export type WeaponType = 'revolver' | 'cutlas' | 'dual_cutlas' | 'shotgun' | 'razor_wave';
 
 export interface Upgrade {
   id: string;
   name: string;
   description: string;
-  category: 'weapon' | 'mount' | 'defense' | 'utility';
+  category: 'weapon' | 'mount' | 'defense' | 'utility' | 'dog';
   level: number;
   maxLevel: number;
   cost: number;
   iconType: string;
   apply: (state: GameContextState) => void;
+}
+
+export interface DogCompanion {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  angle: number;
+  walkCycle: number;
+  tailWag: number;
+  state: 'follow' | 'fetch' | 'attack' | 'happy';
+  targetBountyId: number | null;
+  targetEnemyId: number | null;
+  level: number;
+  fetchSpeed: number;
+  biteDamage: number;
+  barkCooldown: number;
+  barkTimer: number;
+  biteCooldown: number;
+  biteTimer: number;
+  chivalryAura: boolean;
+  carryingBountyValue: number;
 }
 
 export interface Player {
@@ -49,7 +71,12 @@ export interface Player {
   gunAmmo: number;
   maxGunAmmo: number;
   gunReloadTimer: number;
+  quickDrawTimer: number; // holster draw recoil/flash
+  isThinking: boolean; // Calpurnio philosophical sitting/thinking pose
   
+  // Loyal White Dog Companion
+  dog: DogCompanion;
+
   // Upgrades & Perks
   lineThickness: number;
   ricochetCount: number;
@@ -59,8 +86,23 @@ export interface Player {
   dynamiteTimer: number;
   magnetRange: number;
   criticalChance: number;
+  chivalryKindness: number; // healing aura / hearts
   walkCycle: number;
   horseGallopCycle: number;
+  facingDir: number; // 1 (right) or -1 (left)
+  currentYaw: number; // 0 to Math.PI (interpolates across 4 frames during turn)
+  timeSec: number;
+  isGrounded?: boolean;
+}
+
+export interface Platform {
+  id: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  type: 'wood' | 'rock' | 'roof';
+  label?: string;
 }
 
 export type EnemyType = 'scout' | 'bandit' | 'vulture' | 'snake' | 'brute' | 'rider' | 'boss';
@@ -68,6 +110,10 @@ export type EnemyType = 'scout' | 'bandit' | 'vulture' | 'snake' | 'brute' | 'ri
 export interface Enemy {
   id: number;
   type: EnemyType;
+  characterIdentity?: 'cuttlas' | 'jim' | 'jak' | 'juan_bala' | 'alien_37' | 'bandit';
+  facingDir: number;
+  currentYaw: number;
+  timeSec: number;
   x: number;
   y: number;
   vx: number;
@@ -118,7 +164,7 @@ export interface Particle {
   lineWidth: number;
   life: number;
   maxLife: number;
-  type: 'line' | 'spark' | 'smoke' | 'blood' | 'dust' | 'text';
+  type: 'line' | 'spark' | 'smoke' | 'blood' | 'dust' | 'text' | 'heart' | 'bang';
   text?: string;
 }
 
@@ -160,6 +206,7 @@ export interface GameStats {
   slashes: number;
   shotsFired: number;
   shotsHit: number;
+  chivalryActs: number;
   timeSurvived: number;
   highScore: number;
 }
@@ -173,4 +220,4 @@ export interface GameContextState {
 
 export type GameStateMode = 'title' | 'playing' | 'upgrade' | 'paused' | 'gameover' | 'victory';
 
-export type VisualTheme = 'ink' | 'midnight' | 'sepia';
+export type VisualTheme = 'calpurnio' | 'ink' | 'midnight' | 'sepia';

@@ -94,6 +94,27 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
             <line x1="30" y1="12" x2="38" y2="12" />
           </svg>
         );
+      case 'dog':
+        return (
+          <svg width="36" height="36" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <ellipse cx="22" cy="26" rx="12" ry="7" fill="#ffffff" />
+            <ellipse cx="33" cy="20" rx="6" ry="5" fill="#ffffff" />
+            <circle cx="38" cy="20" r="1.5" fill="currentColor" />
+            <line x1="31" y1="16" x2="27" y2="21" />
+            <line x1="28" y1="23" x2="28" y2="29" stroke="#dc2626" strokeWidth="3" />
+            <line x1="10" y1="25" x2="4" y2="17" />
+            <line x1="29" y1="33" x2="31" y2="42" />
+            <line x1="24" y1="33" x2="22" y2="42" />
+            <line x1="17" y1="33" x2="16" y2="42" />
+            <line x1="12" y1="33" x2="10" y2="42" />
+          </svg>
+        );
+      case 'heart':
+        return (
+          <svg width="36" height="36" viewBox="0 0 48 48" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M24 14 C20 6 10 10 12 22 C14 30 24 38 24 38 C24 38 34 30 36 22 C38 10 28 6 24 14 Z" />
+          </svg>
+        );
       default:
         return (
           <svg width="36" height="36" viewBox="0 0 48 48" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round">
